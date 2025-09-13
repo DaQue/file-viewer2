@@ -117,10 +117,10 @@ impl CodeTheme {
             Self::Dracula => Color32::from_rgb(189, 147, 249),      // Light purple
             Self::MaterialTheme => Color32::from_rgb(255, 213, 79), // Yellow
             Self::MonokaiPro => Color32::from_rgb(174, 129, 255),   // Purple
-            Self::NightOwl => Color32::from_rgb(255, 203, 107),     // Orange
+            Self::NightOwl => Color32::from_rgb(199, 146, 234),     // Purple
             Self::Ayu => Color32::from_rgb(255, 204, 102),          // Orange
-            Self::Cobalt2 => Color32::from_rgb(255, 168, 33),       // Orange
-            Self::Palenight => Color32::from_rgb(255, 203, 107),    // Orange
+            Self::Cobalt2 => Color32::from_rgb(0, 255, 0),          // Green
+            Self::Palenight => Color32::from_rgb(199, 146, 234),    // Purple
             Self::ShadesOfPurple => Color32::from_rgb(255, 121, 198), // Pink
             Self::Noctis => Color32::from_rgb(255, 204, 102),       // Orange
         }
@@ -128,16 +128,16 @@ impl CodeTheme {
 
     pub fn comment(&self) -> Color32 {
         match self {
-            Self::OneDarkPro => Color32::from_rgb(92, 99, 112),     // Gray
+            Self::OneDarkPro => Color32::from_rgb(92, 99, 112),     // Dim gray
             Self::Dracula => Color32::from_rgb(98, 114, 164),       // Blue-gray
-            Self::MaterialTheme => Color32::from_rgb(117, 113, 94), // Brown-gray
-            Self::MonokaiPro => Color32::from_rgb(117, 113, 94),    // Brown-gray
-            Self::NightOwl => Color32::from_rgb(99, 119, 119),      // Blue-gray
-            Self::Ayu => Color32::from_rgb(92, 99, 112),            // Gray
-            Self::Cobalt2 => Color32::from_rgb(0, 255, 255),        // Cyan
-            Self::Palenight => Color32::from_rgb(99, 119, 119),     // Blue-gray
-            Self::ShadesOfPurple => Color32::from_rgb(255, 121, 198), // Pink
-            Self::Noctis => Color32::from_rgb(92, 99, 112),         // Gray
+            Self::MaterialTheme => Color32::from_rgb(117, 117, 117), // Gray
+            Self::MonokaiPro => Color32::from_rgb(117, 113, 94),    // Brownish gray
+            Self::NightOwl => Color32::from_rgb(76, 86, 106),       // Gray-blue
+            Self::Ayu => Color32::from_rgb(102, 112, 128),          // Gray-blue
+            Self::Cobalt2 => Color32::from_rgb(153, 153, 153),      // Gray
+            Self::Palenight => Color32::from_rgb(128, 140, 161),    // Gray-blue
+            Self::ShadesOfPurple => Color32::from_rgb(153, 153, 153), // Gray
+            Self::Noctis => Color32::from_rgb(153, 153, 153),       // Gray
         }
     }
 
@@ -246,3 +246,4 @@ impl CodeTheme {
         }
     }
 }
+

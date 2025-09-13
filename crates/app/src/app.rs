@@ -1,6 +1,6 @@
 use eframe::egui;
 use crate::highlight;
-use crate::search;
+use file_viewer_core as core;
 use crate::themes::CodeTheme;
 use egui::{text::LayoutJob, RichText, TextureHandle};
 use std::fs;
@@ -148,8 +148,6 @@ impl FileViewerApp {
         ctx.set_style(style);
     }
 
-    // io helpers moved to crate::io
-
     pub fn load_file(&mut self, path: PathBuf, ctx: &egui::Context) {
         self.content = None;
         self.error_message = None;
@@ -165,12 +163,16 @@ impl FileViewerApp {
             return;
         }
 
-        let loaded = if crate::io::is_supported_image(&path) {
-            match crate::io::load_image(&path) {
-                Ok(color_image) => {
+        let loaded = if core::is_supported_image(&path) {
+            match core::load_image(&path) {
+                Ok(img) => {
+                    let color = eframe::egui::ColorImage::from_rgba_unmultiplied(
+                        [img.width as _, img.height as _],
+                        &img.pixels,
+                    );
                     let texture = ctx.load_texture(
                         path.to_string_lossy(),
-                        color_image,
+                        color,
                         egui::TextureOptions::LINEAR,
                     );
                     Ok(Content::Image(texture))
@@ -178,7 +180,7 @@ impl FileViewerApp {
                 Err(e) => Err(e),
             }
         } else {
-            match crate::io::load_text(&path) {
+            match core::load_text(&path) {
                 Ok((text, lossy, lines)) => {
                     self.text_is_big = text.len() >= BIG_TEXT_CHAR_THRESHOLD || lines >= 50_000;
                     self.text_line_count = lines;
@@ -206,8 +208,6 @@ impl FileViewerApp {
             Err(e) => self.error_message = Some(e),
         }
     }
-
-    // settings helpers moved to crate::settings
 }
 
 impl Default for FileViewerApp {
@@ -323,10 +323,10 @@ impl eframe::App for FileViewerApp {
                 if let Some(cur) = self.current_path.clone() {
                     match self.content {
                         Some(Content::Image(_)) => {
-                            if let Some(next) = crate::io::neighbor_image(&cur, true) { file_to_load = Some(next); }
+                            if let Some(next) = core::neighbor_image(&cur, true) { file_to_load = Some(next); }
                         }
                         Some(Content::Text(_)) => {
-                            if let Some(next) = crate::io::neighbor_text(&cur, true) { file_to_load = Some(next); }
+                            if let Some(next) = core::neighbor_text(&cur, true) { file_to_load = Some(next); }
                         }
                         _ => {}
                     }
@@ -336,10 +336,10 @@ impl eframe::App for FileViewerApp {
                 if let Some(cur) = self.current_path.clone() {
                     match self.content {
                         Some(Content::Image(_)) => {
-                            if let Some(prev) = crate::io::neighbor_image(&cur, false) { file_to_load = Some(prev); }
+                            if let Some(prev) = core::neighbor_image(&cur, false) { file_to_load = Some(prev); }
                         }
                         Some(Content::Text(_)) => {
-                            if let Some(prev) = crate::io::neighbor_text(&cur, false) { file_to_load = Some(prev); }
+                            if let Some(prev) = core::neighbor_text(&cur, false) { file_to_load = Some(prev); }
                         }
                         _ => {}
                     }
@@ -351,16 +351,16 @@ impl eframe::App for FileViewerApp {
                     if t == ">" {
                         if let Some(cur) = self.current_path.clone() {
                             match self.content {
-                                Some(Content::Image(_)) => { if let Some(next) = crate::io::neighbor_image(&cur, true) { file_to_load = Some(next); } }
-                                Some(Content::Text(_)) => { if let Some(next) = crate::io::neighbor_text(&cur, true) { file_to_load = Some(next); } }
+                                Some(Content::Image(_)) => { if let Some(next) = core::neighbor_image(&cur, true) { file_to_load = Some(next); } }
+                                Some(Content::Text(_)) => { if let Some(next) = core::neighbor_text(&cur, true) { file_to_load = Some(next); } }
                                 _ => {}
                             }
                         }
                     } else if t == "<" {
                         if let Some(cur) = self.current_path.clone() {
                             match self.content {
-                                Some(Content::Image(_)) => { if let Some(prev) = crate::io::neighbor_image(&cur, false) { file_to_load = Some(prev); } }
-                                Some(Content::Text(_)) => { if let Some(prev) = crate::io::neighbor_text(&cur, false) { file_to_load = Some(prev); } }
+                                Some(Content::Image(_)) => { if let Some(prev) = core::neighbor_image(&cur, false) { file_to_load = Some(prev); } }
+                                Some(Content::Text(_)) => { if let Some(prev) = core::neighbor_text(&cur, false) { file_to_load = Some(prev); } }
                                 _ => {}
                             }
                         }
@@ -487,7 +487,7 @@ impl eframe::App for FileViewerApp {
                                         .to_lowercase();
                                     // Determine target line for current match
                                     let target_line = if !self.search_query.is_empty() && self.search_count > 0 {
-                                        search::find_target_line(text, &self.search_query, self.search_current)
+                                        core::find_target_line(text, &self.search_query, self.search_current)
                                     } else { None };
                                     // Render per line and capture rect
                                     let mut counter: usize = 0;
@@ -578,3 +578,4 @@ impl eframe::App for FileViewerApp {
         }
     }
 }
+

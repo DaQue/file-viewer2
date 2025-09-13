@@ -1,0 +1,14 @@
+[package]
+name = "gemini-file-viewer"
+version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+eframe = { workspace = true }
+rfd = { workspace = true }
+image = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+directories = { workspace = true }
+file-viewer-core = { path = "../core" }
+

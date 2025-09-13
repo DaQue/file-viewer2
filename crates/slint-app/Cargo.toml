@@ -1,0 +1,15 @@
+[package]
+name = "file-viewer-slint-app"
+version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+slint = { version = "1", features = ["std"] }
+file-viewer-core = { path = "../core" }
+rfd = { workspace = true }
+directories = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[build-dependencies]
+slint-build = "1"

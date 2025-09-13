@@ -1,0 +1,134 @@
+import { Button } from "std-widgets.slint";
+
+// Text viewer model (spans-per-line)
+export struct Span { text: string, match_kind: int }
+export struct Line { line_no: string, spans: [Span] }
+
+export component MainWindow inherits Window {
+    title: "Gemini File Viewer 2.0 (Slint)";
+    width: 1000px;
+    height: 700px;
+
+    // Basic controls for this step
+    callback open-file();
+    callback open-folder();
+    callback toggle-theme();
+    callback open-recent(path: string);
+    callback prev-file();
+    callback next-file();
+    callback toggle-recents();
+
+    in-out property <string> status-text: "Ready";
+    in-out property <bool> dark-mode: true;
+
+    in-out property <[Line]> lines: [];
+    in-out property <[string]> recents: [];
+    in-out property <bool> show-recents: false;
+    in-out property <int> recents-count: 0;
+
+    // Image viewer state
+    in-out property <image> current_image;
+    in-out property <bool> show_image: false;
+    in-out property <int> image_w: 0;
+    in-out property <int> image_h: 0;
+    in-out property <float> image_zoom: 1.0;
+    in-out property <float> text_zoom: 1.0;
+    in-out property <bool> show_line_numbers: true;
+    in-out property <bool> image_fit: true;
+
+    VerticalLayout {
+        spacing: 8px;
+        padding: 8px;
+
+        // Top menu / toolbar
+        HorizontalLayout {
+            preferred-height: 40px;
+            spacing: 8px;
+            Text { text: "📁 Gemini File Viewer"; font-size: 18px; }
+            Rectangle { horizontal-stretch: 1; } // spacer
+            Button { text: "Recents"; height: 32px; clicked => { root.toggle-recents(); } }
+            Button { text: "Open File"; height: 32px; clicked => { root.open-file(); } }
+            Button { text: "Open Folder"; height: 32px; clicked => { root.open-folder(); } }
+            Button { text: "Toggle Theme"; height: 32px; clicked => { root.toggle-theme(); } }
+            Button { text: "⬅️"; height: 32px; clicked => { root.prev-file(); } }
+            Button { text: "➡️"; height: 32px; clicked => { root.next-file(); } }
+        }
+
+        // Recents panel
+        Rectangle {
+            height: root.show-recents ? 200px : 0px;
+            border-radius: 6px;
+            background: root.dark-mode ? #2b2b2b : #f0f0f0;
+            border-width: 1px;
+            border-color: root.dark-mode ? #444444 : #cccccc;
+            clip: true;
+            VerticalLayout {
+                spacing: 4px;
+                HorizontalLayout { padding: 8px; spacing: 8px; Text { text: "Recent Files"; } Text { text: "(" + recents-count + " items)"; color: #8b8b8b; } }
+                Flickable {
+                    vertical-stretch: 1;
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 4px;
+                        for p in root.recents: Button { height: 28px; text: p; clicked => { root.open-recent(p); root.show-recents = false; } }
+                    }
+                }
+            }
+        }
+
+        // Content area: image or text viewer
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: 6px;
+            background: root.dark-mode ? #1e1e1e : #ffffff;
+            clip: true;
+            // Image flickable
+            Flickable {
+                visible: root.show_image;
+                width: parent.width;
+                height: parent.height;
+                viewport-width: parent.width;
+                viewport-height: parent.height;
+                HorizontalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: max(0px, (root.image_w * (root.image_fit ? min(parent.width / max(1px, (root.image_w * 1px)), parent.height / max(1px, (root.image_h * 1px))) : root.image_zoom)) * 1px);
+                        height: max(0px, (root.image_h * (root.image_fit ? min(parent.height / max(1px, (root.image_h * 1px)), parent.width / max(1px, (root.image_w * 1px))) : root.image_zoom)) * 1px);
+                        Image { source: root.current_image; width: parent.width; height: parent.height; }
+                    }
+                }
+            }
+            // Text flickable
+            Flickable {
+                visible: !root.show_image;
+                width: parent.width;
+                height: parent.height;
+                viewport-width: parent.width;
+                viewport-height: parent.height;
+                VerticalLayout {
+                    padding: 8px;
+                    spacing: 2px;
+                    for line in root.lines: HorizontalLayout {
+                        spacing: 8px;
+                        Text { width: 48px; horizontal-alignment: right; text: line.line_no; color: #8b8b8b; font-family: "monospace"; font-size: 13px * root.text_zoom; }
+                        HorizontalLayout {
+                            spacing: 0px;
+                            for sp in line.spans: Rectangle {
+                                background: rgba(0,0,0,0);
+                                Text { text: sp.text; color: root.dark-mode ? #ffffff : #000000; font-family: "monospace"; font-size: 13px * root.text_zoom; }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Status bar
+        Rectangle {
+            height: 28px;
+            border-radius: 4px;
+            background: root.dark-mode ? #2b2b2b : #ececec;
+            HorizontalLayout { padding-left: 8px; alignment: start; Text { text: status-text; color: root.dark-mode ? #ffffff : #000000; } }
+        }
+    }
+}

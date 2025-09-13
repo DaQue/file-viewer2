@@ -1,4 +1,5 @@
 use eframe::egui::{self, text::LayoutJob, Color32, FontId};
+use crate::themes::CodeTheme;
 
 pub(crate) fn append_with_search(
     job: &mut LayoutJob,
@@ -8,6 +9,7 @@ pub(crate) fn append_with_search(
     query: &str,
     current_idx: usize,
     counter: &mut usize,
+    theme: CodeTheme,
 ) {
     if query.is_empty() {
         job.append(text, 0.0, egui::TextFormat { font_id, color, ..Default::default() });
@@ -25,9 +27,9 @@ pub(crate) fn append_with_search(
             let matched = &rest[found_rel..found_rel + lc_query.len()];
             let mut fmt = egui::TextFormat { font_id: font_id.clone(), color, ..Default::default() };
             if *counter == current_idx {
-                fmt.background = Color32::from_rgba_premultiplied(224, 108, 117, 96);
+                fmt.background = theme.search_current();
             } else {
-                fmt.background = Color32::from_rgba_premultiplied(255, 255, 0, 64);
+                fmt.background = theme.search_highlight();
             }
             job.append(matched, 0.0, fmt);
             *counter += 1;
@@ -53,21 +55,16 @@ pub(crate) fn token_highlight(
     depth: &mut i32,
     current_idx: usize,
     counter: &mut usize,
+    theme: CodeTheme,
 ) {
     if !do_syntax {
-        append_with_search(job, text, font_id, base_color, query, current_idx, counter);
+        append_with_search(job, text, font_id, base_color, query, current_idx, counter, theme);
         return;
     }
-    let kw_color = Color32::from_rgb(97, 175, 239);
-    let num_color = Color32::from_rgb(209, 154, 102);
-    let bool_color = Color32::from_rgb(198, 120, 221);
-    let bracket_colors = [
-        Color32::from_rgb(152, 195, 121),
-        Color32::from_rgb(224, 108, 117),
-        Color32::from_rgb(97, 175, 239),
-        Color32::from_rgb(229, 192, 123),
-        Color32::from_rgb(86, 182, 194),
-    ];
+    let kw_color = theme.keyword();
+    let num_color = theme.number();
+    let bool_color = theme.keyword();
+    let bracket_colors = theme.bracket_colors();
 
     let keywords_rs: &[&str] = &[
         "as","async","await","break","const","continue","crate","dyn","else","enum","extern","false","fn","for","if","impl","in","let","loop","match","mod","move","mut","pub","ref","return","self","Self","static","struct","super","trait","true","type","unsafe","use","where","while",
@@ -95,7 +92,7 @@ pub(crate) fn token_highlight(
                 } else {
                     (base_color, false)
                 };
-                append_with_search(job, &buf, font_id.clone(), color, query, current_idx, counter);
+                append_with_search(job, &buf, font_id.clone(), color, query, current_idx, counter, theme);
                 buf.clear();
             }
             let color = match ch {
@@ -112,7 +109,7 @@ pub(crate) fn token_highlight(
                 _ => None,
             };
             let delim = ch.to_string();
-            append_with_search(job, &delim, font_id.clone(), color.unwrap_or(base_color), query, current_idx, counter);
+            append_with_search(job, &delim, font_id.clone(), color.unwrap_or(base_color), query, current_idx, counter, theme);
         }
     }
     if !buf.is_empty() {
@@ -128,7 +125,7 @@ pub(crate) fn token_highlight(
         } else {
             (base_color, false)
         };
-        append_with_search(job, &buf, font_id, color, query, current_idx, counter);
+        append_with_search(job, &buf, font_id, color, query, current_idx, counter, theme);
     }
 }
 
@@ -144,6 +141,7 @@ pub(crate) fn append_highlighted(
     current_idx: usize,
     counter: &mut usize,
     in_block_comment: &mut bool,
+    theme: CodeTheme,
 ) {
     if do_syntax {
         if ext == "rs" {
@@ -151,12 +149,12 @@ pub(crate) fn append_highlighted(
             if *in_block_comment {
                 if let Some(end) = line[i..].find("*/") {
                     let end_abs = i + end + 2;
-                    let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                    let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                     job.append(&line[i..end_abs], 0.0, fmt);
                     *in_block_comment = false;
                     i = end_abs;
                 } else {
-                    let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                    let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                     job.append(&line[i..], 0.0, fmt);
                     return;
                 }
@@ -168,57 +166,57 @@ pub(crate) fn append_highlighted(
                 match (pos_sl, pos_blk) {
                     (Some(psl), Some(pblk)) if psl < pblk => {
                         if psl > 0 {
-                            token_highlight(job, &rest[..psl], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter);
+                            token_highlight(job, &rest[..psl], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter, theme);
                         }
-                        let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                        let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                         job.append(&rest[psl..], 0.0, fmt);
                         return;
                     }
                     (Some(psl), None) => {
                         if psl > 0 {
-                            token_highlight(job, &rest[..psl], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter);
+                            token_highlight(job, &rest[..psl], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter, theme);
                         }
-                        let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                        let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                         job.append(&rest[psl..], 0.0, fmt);
                         return;
                     }
                     (None, Some(pblk)) => {
                         if pblk > 0 {
-                            token_highlight(job, &rest[..pblk], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter);
+                            token_highlight(job, &rest[..pblk], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter, theme);
                         }
                         let after = pblk + 2;
                         let tail = &rest[after..];
                         if let Some(end) = tail.find("*/") {
                             let end_abs = i + after + end + 2;
-                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                             job.append(&line[i + pblk..end_abs], 0.0, fmt);
                             i = end_abs;
                             continue;
                         } else {
-                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                             job.append(&rest[pblk..], 0.0, fmt);
                             *in_block_comment = true;
                             return;
                         }
                     }
                     (None, None) => {
-                        token_highlight(job, rest, ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter);
+                        token_highlight(job, rest, ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter, theme);
                         return;
                     }
                     (Some(_psl), Some(pblk)) => {
                         if pblk > 0 {
-                            token_highlight(job, &rest[..pblk], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter);
+                            token_highlight(job, &rest[..pblk], ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter, theme);
                         }
                         let after = pblk + 2;
                         let tail = &rest[after..];
                         if let Some(end) = tail.find("*/") {
                             let end_abs = i + after + end + 2;
-                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                             job.append(&line[i + pblk..end_abs], 0.0, fmt);
                             i = end_abs;
                             continue;
                         } else {
-                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                            let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                             job.append(&rest[pblk..], 0.0, fmt);
                             *in_block_comment = true;
                             return;
@@ -232,8 +230,8 @@ pub(crate) fn append_highlighted(
         let comment_prefix = if ext == "py" { "#" } else { comment_prefix };
         if !comment_prefix.is_empty() {
             if let Some(pos) = line.find(comment_prefix) {
-                append_highlighted(job, &line[..pos], "", query, font_id.clone(), base_color, do_syntax, depth, current_idx, counter, in_block_comment);
-                let fmt = egui::TextFormat { font_id: font_id.clone(), color: Color32::GRAY, ..Default::default() };
+                append_highlighted(job, &line[..pos], "", query, font_id.clone(), base_color, do_syntax, depth, current_idx, counter, in_block_comment, theme);
+                let fmt = egui::TextFormat { font_id: font_id.clone(), color: theme.comment(), ..Default::default() };
                 job.append(&line[pos..], 0.0, fmt);
                 return;
             }
@@ -246,14 +244,14 @@ pub(crate) fn append_highlighted(
         let mut chars = line.chars().peekable();
         while let Some(ch) = chars.next() {
             if ch == '"' {
-                if !buf.is_empty() { token_highlight(job, &buf, ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter); buf.clear(); }
+                if !buf.is_empty() { token_highlight(job, &buf, ext, font_id.clone(), base_color, query, do_syntax, depth, current_idx, counter, theme); buf.clear(); }
                 buf.clear();
                 let mut s = String::from('"');
                 while let Some(c2) = chars.next() {
                     s.push(c2);
                     if c2 == '"' { break; }
                 }
-                append_with_search(job, &s, font_id.clone(), Color32::from_rgb(152, 195, 121), query, current_idx, counter);
+                append_with_search(job, &s, font_id.clone(), theme.string(), query, current_idx, counter, theme);
             } else {
                 buf.push(ch);
             }
@@ -263,6 +261,6 @@ pub(crate) fn append_highlighted(
     }
 
     if !buf.is_empty() {
-        token_highlight(job, &buf, ext, font_id, base_color, query, do_syntax, depth, current_idx, counter);
+        token_highlight(job, &buf, ext, font_id, base_color, query, do_syntax, depth, current_idx, counter, theme);
     }
 }

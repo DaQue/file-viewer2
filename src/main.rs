@@ -5,6 +5,7 @@ mod highlight;
 mod search;
 mod io;
 mod settings;
+mod themes;
 mod ui;
 
 use app::FileViewerApp;

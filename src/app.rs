@@ -1,6 +1,7 @@
 use eframe::egui;
 use crate::highlight;
 use crate::search;
+use crate::themes::CodeTheme;
 use egui::{text::LayoutJob, RichText, TextureHandle};
 use std::fs;
 use rfd::FileDialog;
@@ -26,6 +27,7 @@ pub struct FileViewerApp {
     #[serde(skip)]
     pub(crate) error_message: Option<String>,
     pub(crate) dark_mode: bool,
+    pub(crate) code_theme: CodeTheme,
     pub(crate) recent_files: Vec<PathBuf>,
     pub(crate) show_line_numbers: bool,
     pub(crate) word_wrap: bool,
@@ -86,18 +88,62 @@ impl FileViewerApp {
             egui::Visuals::light()
         };
 
-        // Accent colors
-        visuals.selection.bg_fill = if self.dark_mode {
-            egui::Color32::from_rgb(80, 140, 255)
+        // Vibrant color scheme
+        if self.dark_mode {
+            // Dark theme - vibrant dark palette
+            visuals.window_fill = egui::Color32::from_rgb(15, 15, 20);        // Deep dark background
+            visuals.panel_fill = egui::Color32::from_rgb(22, 22, 28);         // Slightly lighter panels
+            visuals.faint_bg_color = egui::Color32::from_rgb(32, 32, 40);     // Subtle backgrounds
+            visuals.extreme_bg_color = egui::Color32::from_rgb(42, 42, 50);   // Hover states
+            
+            // Vibrant accent colors
+            visuals.selection.bg_fill = egui::Color32::from_rgb(59, 130, 246); // Bright blue
+            visuals.hyperlink_color = egui::Color32::from_rgb(99, 102, 241);  // Purple-blue
+            
+            // Interactive elements
+            visuals.button_frame = true;
+            visuals.window_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(55, 65, 81));
         } else {
-            egui::Color32::from_rgb(0, 110, 230)
-        };
-        visuals.hyperlink_color = visuals.selection.bg_fill;
+            // Light theme - vibrant light palette
+            visuals.window_fill = egui::Color32::from_rgb(255, 255, 255);     // Pure white
+            visuals.panel_fill = egui::Color32::from_rgb(248, 250, 252);      // Very light gray
+            visuals.faint_bg_color = egui::Color32::from_rgb(241, 245, 249);  // Light backgrounds
+            visuals.extreme_bg_color = egui::Color32::from_rgb(226, 232, 240); // Hover states
+            
+            // Vibrant accent colors
+            visuals.selection.bg_fill = egui::Color32::from_rgb(59, 130, 246); // Bright blue
+            visuals.hyperlink_color = egui::Color32::from_rgb(99, 102, 241);  // Purple-blue
+            
+            // Interactive elements
+            visuals.button_frame = true;
+            visuals.window_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(226, 232, 240));
+        }
 
-        // Start from current style, adjust spacing, then inject our visuals
+        // Modern spacing and styling
         let mut style = (*ctx.style()).clone();
-        style.spacing.item_spacing = egui::vec2(8.0, 6.0);
-        style.spacing.button_padding = egui::vec2(10.0, 6.0);
+        style.spacing.item_spacing = egui::vec2(12.0, 8.0);           // More generous spacing
+        style.spacing.button_padding = egui::vec2(16.0, 10.0);        // Larger button padding
+        style.spacing.menu_margin = egui::Margin::same(8);            // Menu margins
+        style.spacing.window_margin = egui::Margin::same(16);         // Window margins
+        
+        // Modern typography
+        style.text_styles.insert(
+            egui::TextStyle::Heading,
+            egui::FontId::new(24.0, egui::FontFamily::Proportional)
+        );
+        style.text_styles.insert(
+            egui::TextStyle::Body,
+            egui::FontId::new(14.0, egui::FontFamily::Proportional)
+        );
+        style.text_styles.insert(
+            egui::TextStyle::Monospace,
+            egui::FontId::new(13.0, egui::FontFamily::Monospace)
+        );
+        
+        // Modern styling
+        style.visuals.button_frame = true;
+        style.visuals.collapsing_header_frame = true;
+        
         style.visuals = visuals;
         ctx.set_style(style);
     }
@@ -171,6 +217,7 @@ impl Default for FileViewerApp {
             current_path: None,
             error_message: None,
             dark_mode: true,
+            code_theme: CodeTheme::default(),
             recent_files: Vec::new(),
             show_line_numbers: true,
             word_wrap: true,
@@ -322,25 +369,59 @@ impl eframe::App for FileViewerApp {
             }
         });
 
-        // About dialog
+        // Modern About dialog
         if self.show_about {
             egui::Window::new("About Gemini File Viewer")
                 .collapsible(false)
                 .resizable(false)
                 .open(&mut self.show_about)
                 .show(ctx, |ui| {
-                    ui.label(RichText::new("Gemini File Viewer 2.0").strong());
-                    ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
-                    ui.separator();
-                    ui.label("Shortcuts:");
-                    ui.monospace("Ctrl+O — Open file");
-                    ui.monospace("Ctrl+D — Toggle dark mode");
-                    ui.monospace("Ctrl+L — Toggle line numbers");
-                    ui.monospace("Ctrl+W — Toggle word wrap");
-                    ui.monospace("Ctrl+Wheel — Zoom text/image");
-                    ui.monospace("Ctrl+= / Ctrl+- — Zoom in/out");
-                    ui.monospace("Ctrl+0 — Reset zoom");
-                    ui.monospace("Ctrl+F — Find in text");
+                    ui.vertical_centered(|ui| {
+                        ui.label(RichText::new("📁").size(48.0));
+                        ui.add_space(12.0);
+                        ui.label(RichText::new("Gemini File Viewer").heading().strong());
+                        ui.label(RichText::new(format!("Version {}", env!("CARGO_PKG_VERSION"))).weak());
+                        ui.add_space(16.0);
+                        
+                        ui.separator();
+                        ui.add_space(12.0);
+                        
+                        ui.label(RichText::new("⌨️ Keyboard Shortcuts").strong());
+                        ui.add_space(8.0);
+                        
+                        ui.horizontal(|ui| {
+                            ui.vertical(|ui| {
+                                ui.monospace(RichText::new("Ctrl+O").strong());
+                                ui.monospace(RichText::new("Ctrl+D").strong());
+                                ui.monospace(RichText::new("Ctrl+L").strong());
+                                ui.monospace(RichText::new("Ctrl+W").strong());
+                                ui.monospace(RichText::new("Ctrl+F").strong());
+                            });
+                            ui.add_space(16.0);
+                            ui.vertical(|ui| {
+                                ui.label("Open file");
+                                ui.label("Toggle dark mode");
+                                ui.label("Toggle line numbers");
+                                ui.label("Toggle word wrap");
+                                ui.label("Find in text");
+                            });
+                        });
+                        
+                        ui.add_space(12.0);
+                        ui.horizontal(|ui| {
+                            ui.vertical(|ui| {
+                                ui.monospace(RichText::new("Ctrl+Wheel").strong());
+                                ui.monospace(RichText::new("Ctrl+= / Ctrl+-").strong());
+                                ui.monospace(RichText::new("Ctrl+0").strong());
+                            });
+                            ui.add_space(16.0);
+                            ui.vertical(|ui| {
+                                ui.label("Zoom text/image");
+                                ui.label("Zoom in/out");
+                                ui.label("Reset zoom");
+                            });
+                        });
+                    });
                 });
         }
         if toggle_dark {
@@ -356,10 +437,10 @@ impl eframe::App for FileViewerApp {
             });
         });
 
-        // Search Bar (only when viewing text)
-        if matches!(self.content, Some(Content::Text(_))) {
+        // Search Bar (for text files and images with navigation)
+        if matches!(self.content, Some(Content::Text(_))) || matches!(self.content, Some(Content::Image(_))) {
             egui::TopBottomPanel::top("searchbar").show(ctx, |ui| {
-                crate::ui::search_bar(ui, self);
+                crate::ui::search_bar(ui, self, &mut file_to_load);
             });
         }
 
@@ -382,14 +463,16 @@ impl eframe::App for FileViewerApp {
             if let Some(content) = &self.content {
                 match content {
                     Content::Text(text) => {
-                        egui::Frame::group(ui.style()).show(ui, |ui| {
+                        let mut frame = egui::Frame::group(ui.style());
+                        frame.fill = self.code_theme.background();
+                        frame.show(ui, |ui| {
                             // Wrap preference
                             ui.style_mut().wrap_mode = Some(if self.word_wrap { egui::TextWrapMode::Wrap } else { egui::TextWrapMode::Extend });
                             egui::ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
                                 let text_style = egui::TextStyle::Monospace;
                                 let mut font_id = text_style.resolve(ui.style());
                                 font_id.size = (font_id.size * self.text_zoom).clamp(8.0, 48.0);
-                                let text_color = ui.visuals().text_color();
+                                let text_color = self.code_theme.foreground();
 
                                 let do_line_numbers = self.show_line_numbers && !self.text_is_big;
                                 let do_highlight = !self.text_is_big && text.len() <= HIGHLIGHT_CHAR_THRESHOLD;
@@ -412,9 +495,9 @@ impl eframe::App for FileViewerApp {
                                     for (i, line) in text.lines().enumerate() {
                                         let mut line_job = LayoutJob::default();
                                         if do_line_numbers {
-                                            line_job.append(&format!("{:>4} ", i + 1), 0.0, egui::TextFormat { font_id: font_id.clone(), color: egui::Color32::GRAY, ..Default::default() });
+                                            line_job.append(&format!("{:>4} ", i + 1), 0.0, egui::TextFormat { font_id: font_id.clone(), color: self.code_theme.comment(), ..Default::default() });
                                         }
-                                        highlight::append_highlighted(&mut line_job, line, &ext, &self.search_query, font_id.clone(), text_color, do_highlight, &mut bracket_depth, self.search_current, &mut counter, &mut in_block_comment);
+                                        highlight::append_highlighted(&mut line_job, line, &ext, &self.search_query, font_id.clone(), text_color, do_highlight, &mut bracket_depth, self.search_current, &mut counter, &mut in_block_comment, self.code_theme);
                                         let resp = ui.label(line_job);
                                         if target_line == Some(i) { target_rect = Some(resp.rect); }
                                     }
@@ -456,11 +539,35 @@ impl eframe::App for FileViewerApp {
                     }
                 }
             } else if self.error_message.is_none() {
+                // Modern welcome screen
                 ui.vertical_centered(|ui| {
-                    ui.add_space(ui.available_height() * 0.25);
-                    ui.label(RichText::new("Gemini File Viewer").heading());
-                    ui.add_space(6.0);
-                    ui.label("Open a file to get started.");
+                    ui.add_space(ui.available_height() * 0.2);
+                    
+                    // App icon and title
+                    ui.label(RichText::new("📁").size(64.0));
+                    ui.add_space(16.0);
+                    ui.label(RichText::new("Gemini File Viewer").heading().strong());
+                    ui.add_space(8.0);
+                    ui.label(RichText::new("A modern file viewer for text and images").weak());
+                    
+                    ui.add_space(32.0);
+                    
+                    // Centered Open File button
+                    ui.vertical_centered(|ui| {
+                        let mut open_button = egui::Button::new(RichText::new("📂 Open File").strong());
+                        open_button = open_button.fill(egui::Color32::from_rgb(34, 197, 94)); // Green
+                        if ui.add(open_button).clicked() {
+                            if let Some(path) = FileDialog::new()
+                                .add_filter("All Supported", &["txt","rs","py","toml","md","json","js","html","css","png","jpg","jpeg","gif","bmp","webp"])
+                                .add_filter("Images", &["png","jpg","jpeg","gif","bmp","webp"])
+                                .add_filter("Text/Source", &["txt","rs","py","toml","md","json","js","html","css"])
+                                .pick_file()
+                            {
+                                file_to_load = Some(path);
+                            }
+                        }
+                    });
+                    
                 });
             }
         });
